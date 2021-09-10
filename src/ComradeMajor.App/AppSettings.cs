@@ -1,6 +1,6 @@
 namespace ComradeMajor.App
 {
-    class AppSettings
+    public class AppSettings
     {
         public string BotToken { get; }
         public string ConnectionString { get; }
