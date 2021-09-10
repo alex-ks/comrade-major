@@ -33,14 +33,26 @@ namespace ComradeMajor.App
                                    previous.Activity == action.Activity
                              select new { start = previous, finish = action };
             var groups = from activity in activities
-                         group activity by activity.start.Activity;
+                         group activity by NormalizeActivity(activity.start.Activity);
             var durations = from g in groups
                             let sum = g.Aggregate(TimeSpan.FromTicks(0),
                                                   (res, act) => res +
                                                                 (act.finish.Timestamp - act.start.Timestamp))
+                            let title = g.First().start.Activity
                             orderby sum descending
-                            select new StatEntry { Activity = g.Key, Sum = sum };
+                            select new StatEntry { Activity = title, Sum = sum };
             return await durations.ToAsyncEnumerable().ToListAsync();
+        }
+
+        private static string NormalizeActivity(string activity)
+        {
+            var result = activity.ToLower();
+
+            foreach (char c in ":;.,- ") {
+                result = result.Replace(c.ToString(), null);
+            }
+
+            return result;
         }
     }
 }
