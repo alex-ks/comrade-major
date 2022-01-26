@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -17,6 +18,7 @@ namespace ComradeMajor.App
         private const string kStatsPattern = "докладывайте|те обстановку";
         private const string kTeaPattern = "ча(й|ю|е|ё)";
         private const string kHerePattern = "(слышите|здесь).*\\?";
+        private const string kYearRecapPattern = "подведите итоги года";
 
         private SocketSelfUser self_;
 
@@ -66,6 +68,7 @@ namespace ComradeMajor.App
                                                  SocketMessage message,
                                                  ComradeMajorDbContext context)
         {
+            bool sentSmth = false;
             if (Regex.IsMatch(normalizedText, kStatsPattern))
             {
                 var calc = new StatsCalculator();
@@ -80,7 +83,7 @@ namespace ComradeMajor.App
                 await message.Channel.SendMessageAsync(
                     response,
                     messageReference: new MessageReference(message.Id, message.Channel.Id));
-                return;
+                sentSmth = true;
             }
             if (Regex.IsMatch(normalizedText, kHelpPattern))
             {
@@ -93,16 +96,61 @@ namespace ComradeMajor.App
                 await message.Channel.SendMessageAsync(
                         Reactions.kTea.Name,
                         messageReference: new MessageReference(message.Id, message.Channel.Id));
-                return;
+                sentSmth = true;
             }
             if (Regex.IsMatch(normalizedText, kHerePattern))
             {
                 await message.Channel.SendMessageAsync(
                         "Родина слышит!",
                         messageReference: new MessageReference(message.Id, message.Channel.Id));
-                return;
+                sentSmth = true;
             }
-            await ProcessMentionMessage(normalizedText, message);
+            if (Regex.IsMatch(normalizedText, kYearRecapPattern))
+            {
+                var calc = new StatsCalculator();
+                var now = DateTimeOffset.Now;
+                var lastYear = now.Year - 1;
+                var yearStart = new DateTimeOffset(lastYear, 1, 1, 0, 0, 0, TimeZoneInfo.Local.GetUtcOffset(now));
+                var yearEnd = new DateTimeOffset(lastYear, 12, 31, 23, 59, 59, TimeZoneInfo.Local.GetUtcOffset(now));
+                var stats = await calc.GetTop(message.Author.Id, context, yearStart, yearEnd);
+                var total = stats.Aggregate(TimeSpan.FromTicks(0), (acc, entry) => acc + entry.Sum);
+                var earliestRecord =
+                    calc.GetLog(message.Author.Id, context, yearStart, yearEnd)
+                        .OrderBy(r => r.Timestamp)
+                        .Take(1)
+                        .SingleOrDefault();
+
+                string response;
+                if (earliestRecord == null)
+                {
+                    response =
+                        $"Пользователь {message.Author.Username}#{message.Author.Discriminator} себя не проявил";
+                }
+                else
+                {
+                    var culture = new CultureInfo("ru-RU");
+                    var earliestDate = earliestRecord.Timestamp.ToString("d MMMM yyyy, HH:mm", culture);
+                    // "d MMMM yyyy, HH:mm"
+                    response = string.Join("\n", Enumerable.Empty<string>()
+                        .Append($"Пользователь {message.Author.Username}#{message.Author.Discriminator}")
+                        .Append($"Досье ведётся с {earliestDate} (UTC)")
+                        .Append(string.Empty)
+                        .Append($"Всего за {lastYear} год: {Format(total)}")
+                        .Append($"Топ-10 за год:")
+                        .Concat(stats.Take(10).Select((e, i) => $"{i + 1}. {e.Activity}: {Format(e.Sum)}"))
+                    );
+                }
+
+                await message.Channel.SendMessageAsync(
+                    response,
+                    messageReference: new MessageReference(message.Id, message.Channel.Id));
+                sentSmth = true;
+            }
+
+            if (!sentSmth)
+            {
+                await ProcessMentionMessage(normalizedText, message);
+            }
         }
 
         private async Task ProcessMentionMessage(string normalizedText, SocketMessage message)

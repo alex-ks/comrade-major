@@ -14,10 +14,10 @@ namespace ComradeMajor.App
 
     public class StatsCalculator
     {
-        public async Task<List<StatEntry>> GetTop(ulong userId,
-                                                  ComradeMajorDbContext context,
-                                                  DateTimeOffset start,
-                                                  DateTimeOffset end)
+        public IQueryable<UserAction> GetLog(ulong userId,
+                                             ComradeMajorDbContext context,
+                                             DateTimeOffset start,
+                                             DateTimeOffset end)
         {
             var actions = from action in context.UserActions!.AsQueryable()
                           where action.UserId == userId &&
@@ -25,6 +25,15 @@ namespace ComradeMajor.App
                               action.Timestamp < end
                           orderby action.Timestamp
                           select action;
+            return actions;
+        }
+
+        public async Task<List<StatEntry>> GetTop(ulong userId,
+                                                  ComradeMajorDbContext context,
+                                                  DateTimeOffset start,
+                                                  DateTimeOffset end)
+        {
+            var actions = GetLog(userId, context, start, end);
             var activities = from action in actions.AsEnumerable()
                              where action.ActionType == ActionType.kFinished
                              let previous = actions.Where(a => a.Timestamp < action.Timestamp).LastOrDefault()
