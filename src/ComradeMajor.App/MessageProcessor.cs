@@ -174,14 +174,39 @@ namespace ComradeMajor.App
             var parts = Enumerable.Empty<string>();
             int hours = (int)ts.TotalHours;
             if (hours != 0)
-                parts = parts.Append($"{hours} часов");
+			{
+				var noun = DeclineEnumeratedNouns(hours, "час", "часа", "часов");
+                parts = parts.Append($"{hours} {noun}");
+			}
             if (ts.Minutes != 0)
-                parts = parts.Append($"{ts.Minutes} минут");
+			{
+				var noun = DeclineEnumeratedNouns(ts.Minutes, "минута", "минуты", "минут");
+                parts = parts.Append($"{ts.Minutes} {noun}");
+			}
             if (ts.Seconds != 0)
-                parts = parts.Append($"{ts.Seconds} секунд");
+			{
+				var noun = DeclineEnumeratedNouns(ts.Seconds, "секунда", "секунды", "секунд");
+                parts = parts.Append($"{ts.Seconds} {noun}");
+			}
             if (parts.Count() == 0)
                 return "ничего нет";
             return string.Join(" ", parts);
         }
+		
+		private string DeclineEnumeratedNouns(int number, string nominative, string genitive, string multipleGenitive)
+		{
+			switch (number % 10)
+			{
+				case 1:
+					if (number % 100 != 11)
+						return nominative;
+				case 2:
+				case 3:
+				case 4:
+					if ((number % 100) / 10 != 1)
+						return genitive;
+			}
+			return multipleGenitive;
+		}
     }
 }
