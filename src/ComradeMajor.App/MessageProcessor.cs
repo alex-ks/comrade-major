@@ -193,20 +193,25 @@ namespace ComradeMajor.App
             return string.Join(" ", parts);
         }
 		
-		private string DeclineEnumeratedNouns(int number, string nominative, string genitive, string multipleGenitive)
-		{
-			switch (number % 10)
-			{
-				case 1:
-					if (number % 100 != 11)
-						return nominative;
-				case 2:
-				case 3:
-				case 4:
-					if ((number % 100) / 10 != 1)
-						return genitive;
-			}
-			return multipleGenitive;
-		}
+        private static string DeclineEnumeratedNouns(int number,
+                                                     string nominative,
+                                                     string genitive,
+                                                     string pluralGenitive)
+        {
+            switch (number % 10)
+            {
+                case 1:
+                    if (number % 100 != 11)
+                        return nominative;
+                    break;
+                case 2:
+                case 3:
+                case 4:
+                    if ((number % 100) / 10 != 1)
+                        return genitive;
+                    break;
+            }
+            return pluralGenitive;
+        }
     }
 }
