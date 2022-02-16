@@ -20,7 +20,7 @@ namespace ComradeMajor.App
         private const string kHerePattern = "(слышите|здесь).*\\?";
         private const string kYearRecapPattern = "подведите итоги года";
 
-        private SocketSelfUser self_;
+        private readonly SocketSelfUser self_;
 
         public MessageProcessor(SocketSelfUser self)
         {
@@ -51,11 +51,11 @@ namespace ComradeMajor.App
                 }
                 else if (Regex.IsMatch(text, kMentionPattern))
                 {
-                    await ProcessMentionMessage(text, message);
+                    await ProcessMentionMessage(message);
                 }
                 else
                 {
-                    await ProcessNeutralMessage(text, message);
+                    await ProcessNeutralMessage(message);
                 }
             }
             catch (NotImplementedException)
@@ -64,7 +64,7 @@ namespace ComradeMajor.App
             }
         }
 
-        private async Task ProcessAddressMessage(string normalizedText,
+        private static async Task ProcessAddressMessage(string normalizedText,
                                                  SocketMessage message,
                                                  ComradeMajorDbContext context)
         {
@@ -149,16 +149,16 @@ namespace ComradeMajor.App
 
             if (!sentSmth)
             {
-                await ProcessMentionMessage(normalizedText, message);
+                await ProcessMentionMessage(message);
             }
         }
 
-        private async Task ProcessMentionMessage(string normalizedText, SocketMessage message)
+        private static async Task ProcessMentionMessage(SocketMessage message)
         {
             await message.AddReactionAsync(Reactions.kPositive.Random());
         }
 
-        private async Task ProcessNeutralMessage(string normalizedText, SocketMessage message)
+        private static async Task ProcessNeutralMessage(SocketMessage message)
         {
             var rng = new Random();
             var roll = rng.Next(0, 100);
@@ -169,26 +169,26 @@ namespace ComradeMajor.App
             }
         }
 
-        private string Format(TimeSpan ts)
+        private static string Format(TimeSpan ts)
         {
             var parts = Enumerable.Empty<string>();
             int hours = (int)ts.TotalHours;
             if (hours != 0)
-			{
-				var noun = DeclineEnumeratedNouns(hours, "час", "часа", "часов");
-                parts = parts.Append($"{hours} {noun}");
-			}
+            {
+                var noun = DeclineEnumeratedNouns(hours, "час", "часа", "часов");
+                 parts = parts.Append($"{hours} {noun}");
+            }
             if (ts.Minutes != 0)
-			{
-				var noun = DeclineEnumeratedNouns(ts.Minutes, "минута", "минуты", "минут");
+            {
+                var noun = DeclineEnumeratedNouns(ts.Minutes, "минута", "минуты", "минут");
                 parts = parts.Append($"{ts.Minutes} {noun}");
-			}
+            }
             if (ts.Seconds != 0)
-			{
-				var noun = DeclineEnumeratedNouns(ts.Seconds, "секунда", "секунды", "секунд");
+            {
+                var noun = DeclineEnumeratedNouns(ts.Seconds, "секунда", "секунды", "секунд");
                 parts = parts.Append($"{ts.Seconds} {noun}");
-			}
-            if (parts.Count() == 0)
+            }
+            if (!parts.Any())
                 return "ничего нет";
             return string.Join(" ", parts);
         }
